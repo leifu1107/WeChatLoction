@@ -1,11 +1,21 @@
 package leifu.wechatloction;
 
+import android.graphics.Color;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.amap.api.maps2d.AMap;
+import com.amap.api.maps2d.CameraUpdate;
+import com.amap.api.maps2d.CameraUpdateFactory;
 import com.amap.api.maps2d.MapView;
 import com.amap.api.maps2d.model.BitmapDescriptorFactory;
+import com.amap.api.maps2d.model.Circle;
+import com.amap.api.maps2d.model.CircleOptions;
+import com.amap.api.maps2d.model.LatLng;
+import com.amap.api.maps2d.model.Marker;
+import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
 
 /**
@@ -14,9 +24,11 @@ import com.amap.api.maps2d.model.MyLocationStyle;
  * 描述:
  */
 
-public class OfoActivity extends AppCompatActivity {
+public class OfoActivity extends AppCompatActivity implements AMap.OnMyLocationChangeListener {
     MapView mMapView = null;
     AMap aMap;
+    private Circle circle;
+    private boolean isFirst = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +44,9 @@ public class OfoActivity extends AppCompatActivity {
             aMap = mMapView.getMap();
         }
 //        实现定位蓝点
+        aMap.setOnMyLocationChangeListener(this);
         initLocation();
+
     }
 
     private void initLocation() {
@@ -42,9 +56,9 @@ public class OfoActivity extends AppCompatActivity {
         myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW);//连续定位、且将视角移动到地图中心点，定位蓝点跟随设备移动。（1秒1次定位）
         myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_market));
         myLocationStyle.anchor(0.5f, 0.5f);
-        myLocationStyle.strokeColor(0xffff0000);
-        myLocationStyle.strokeWidth(5);
-        myLocationStyle.radiusFillColor(R.color.colorPrimary);
+        myLocationStyle.strokeColor(0xffffff);
+        myLocationStyle.strokeWidth(0);
+        myLocationStyle.radiusFillColor(0xffffff);
 
         aMap.setMyLocationStyle(myLocationStyle);//设置定位蓝点的Style
         aMap.getUiSettings().setMyLocationButtonEnabled(true);//设置默认定位按钮是否显示，非必需设置。
@@ -77,5 +91,49 @@ public class OfoActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         //在activity执行onSaveInstanceState时执行mMapView.onSaveInstanceState (outState)，保存地图当前的状态
         mMapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onMyLocationChange(Location location) {
+
+        if (isFirst) {
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            CameraUpdate cameraUpate = CameraUpdateFactory.newLatLngZoom(
+                    latLng, 15);
+            aMap.animateCamera(cameraUpate);
+
+            circle = aMap.addCircle(new CircleOptions().
+                    center(latLng).
+                    radius(1000).
+                    fillColor(Color.argb(11, 1, 1, 1)).
+                    strokeColor(Color.argb(11, 1, 1, 1)).
+                    strokeWidth(15));
+            isFirst = false;
+            MarkerOptions markerOption2 = new MarkerOptions();
+
+            markerOption2.position(new LatLng((location.getLatitude()), location.getLongitude()));
+            markerOption2.icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher_round));
+            aMap.addMarker(markerOption2);
+            Log.e("aaa", "onMyLocationChange: " + location.toString());
+            for (int i = 1; i < 10; i++) {
+                MarkerOptions markerOption = new MarkerOptions();
+
+                markerOption.position(new LatLng((location.getLatitude() + i / 1000.1), location.getLongitude()));
+                markerOption.icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_hook));
+                aMap.addMarker(markerOption).setVisible(true);
+                // 定义 Marker 点击事件监听
+                AMap.OnMarkerClickListener markerClickListener = new AMap.OnMarkerClickListener() {
+                    // marker 对象被点击时回调的接口
+                    // 返回 true 则表示接口已响应事件，否则返回false
+                    @Override
+                    public boolean onMarkerClick(Marker marker) {
+                        Log.e("aaa", "onMarkerClick: " + marker.getPosition().toString());
+                        return false;
+                    }
+                };
+                // 绑定 Marker 被点击事件
+                aMap.setOnMarkerClickListener(markerClickListener);
+            }
+        }
     }
 }
